@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      html, body { margin:0; height:100%; background:#111; }
+      canvas#stage { width:100vw; height:100vh; display:block; }
+      .panel {
+        position:fixed; background:rgba(0,0,0,.6); color:#eee;
+        border-radius:10px; padding:10px; width:420px;
+        font:12px system-ui,-apple-system,Segoe UI,Roboto;
+        z-index:10070; user-select:none;
+      }
+      .panel h3 { margin:0 0 8px 0; font-size:13px; }
+      .row { display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid #222; }
+      .btn { padding:4px 8px; border:1px solid #444; border-radius:6px; background:#1b1b1b; color:#ddd; cursor:pointer; }
+      .btn:hover { background:#262626; }
+      .btn.active { background:#333377; border-color:#5560c9; }
+      .field { padding:6px; border-radius:6px; border:1px solid #444; background:#111; color:#ddd; }
+      .switch { display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+      .switch input { transform: translateY(1px); }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <!-- Cubism Core (must load before plugin) -->
+    <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+
+    <!-- Pixi v6 (compatible with plugin 0.4.x) -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.2/dist/browser/pixi.min.js"></script>
+
+    <!-- pixi-live2d-display cubism4 build (v0.4.x) -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+
+    <script>
+      (async () => {
+        window.PIXI = PIXI;
+
+        // ---------- utils ----------
+        const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        function makeDraggable(el, {x=10, y=10} = {}) {
+          el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.right = 'auto';
+          let sx=0, sy=0, ox=0, oy=0, moving=false;
+          const down = (e) => {
+            const t = e.target.tagName?.toLowerCase();
+            if (['input','button','select','textarea','option','label'].includes(t)) return;
+            moving = true;
+            const p = ('touches' in e) ? e.touches[0] : e;
+            sx=p.clientX; sy=p.clientY; ox=parseInt(el.style.left||'0',10); oy=parseInt(el.style.top||'0',10);
+            e.preventDefault();
+          };
+          const move = (e) => { if (!moving) return; const p=('touches' in e)?e.touches[0]:e;
+            el.style.left = (ox + (p.clientX - sx)) + 'px';
+            el.style.top  = (oy + (p.clientY - sy)) + 'px';
+          };
+          const up = () => { moving=false; };
+          el.addEventListener('mousedown', down);
+          el.addEventListener('touchstart', down, {passive:false});
+          window.addEventListener('mousemove', move);
+          window.addEventListener('touchmove', move, {passive:false});
+          window.addEventListener('mouseup', up);
+          window.addEventListener('touchend', up);
+        }
+
+        // ---------- PIXI + model ----------
+        const app = new PIXI.Application({
+          view: document.getElementById('stage'),
+          resizeTo: window,
+          backgroundAlpha: 0,
+          antialias: true
+        });
+
+        const { Live2DModel } = PIXI.live2d;
+        const model = await Live2DModel.from('/models/MO.v2.6.2/MO.model3.json');
+        app.stage.addChild(model);
+
+        // ---------- fit ----------
+        const screen = () => ({ w: app.renderer.screen.width, h: app.renderer.screen.height });
+        async function clampFit({
+          margin = 0.72, maxIters = 60, shrinkFactor = 0.85, minScale = 0.05, bottomPadPx = 32
+        } = {}) {
+          model.anchor.set(0.5, 0.5);
+          model.scale.set(1);
+          const { w: sw, h: sh } = screen();
+          model.position.set(sw / 2, sh / 2);
+          await nextFrame();
+
+          let s = model.scale.x;
+          for (let i = 0; i < maxIters; i++) {
+            await nextFrame();
+            const mw = model.width, mh = model.height;
+            if (mw <= sw * margin && mh <= sh * margin) break;
+            s = Math.max(minScale, s * shrinkFactor);
+            model.scale.set(s);
+          }
+
+          await nextFrame();
+          const mw2 = model.width, mh2 = model.height;
+          const x = sw / 2;
+          const y = sh - mh2 / 2 - bottomPadPx;
+          model.position.set(x, Math.max(mh2 / 2 + bottomPadPx, y));
+        }
+        await clampFit();
+        addEventListener('resize', () => clampFit());
+
+        // ---------- idle sway + debug ----------
+        app.ticker.add(() => {
+          const t = performance.now() * 0.001;
+          model.internalModel.coreModel.setParameterValueById('ParamAngleZ', Math.sin(t) * 5);
+        });
+        app.ticker.add(() => {
+          const core = model.internalModel?.coreModel;
+          if (!core) return;
+          const smile = core.getParameterValueById('ParamMouthSmile');
+          const eyeL  = core.getParameterValueById('ParamEyeLOpen');
+          const eyeR  = core.getParameterValueById('ParamEyeROpen');
+          if (Math.random() < 0.004) {
+            console.log('Smile:', smile.toFixed(2), 'EyeL:', eyeL.toFixed(2), 'EyeR:', eyeR.toFixed(2));
+          }
+        });
+
+        await nextFrame();
+        const core = model.internalModel.coreModel;
+
+        // ---------- robust param enumeration ----------
+        async function enumerateParamsRobust(model) {
+          await nextFrame();
+          const c = model.internalModel.coreModel;
+
+          if (typeof c.getParameterCount === "function" && typeof c.getParameterId === "function") {
+            const n = c.getParameterCount();
+            const items = [];
+            for (let i = 0; i < n; i++) {
+              const id  = String(c.getParameterId(i));
+              const min = c.getParameterMinimumValue?.(i) ?? -10;
+              const max = c.getParameterMaximumValue?.(i) ??  10;
+              const def = c.getParameterDefaultValue?.(i) ??  0;
+              const val = c.getParameterValueById?.(id) ?? 0;
+              items.push({ id, min, max, default: def, value: val });
+            }
+            return items;
+          }
+
+          // array-backed cores
+          const ids   = c._parameterIds   || c.parameterIds || null;
+          const mins  = c._parameterMinimumValues || c.parameterMinimumValues || null;
+          const maxs  = c._parameterMaximumValues || c.parameterMaximumValues || null;
+          const defs  = c._parameterDefaultValues || c.parameterDefaultValues || null;
+          const vals  = c._parameterValues || c.parameterValues || null;
+          if (Array.isArray(ids) && ids.length) {
+            const n = ids.length, out = [];
+            for (let i = 0; i < n; i++) {
+              out.push({
+                id: String(ids[i]),
+                min: mins ? mins[i] : -10,
+                max: maxs ? maxs[i] :  10,
+                default: defs ? defs[i] : 0,
+                value: vals ? vals[i] : 0
+              });
+            }
+            return out;
+          }
+
+          // fallback
+          const FALLBACK = [
+            'ParamAngleX','ParamAngleY','ParamAngleZ',
+            'ParamEyeLOpen','ParamEyeROpen','ParamEyeBallX','ParamEyeBallY',
+            'ParamMouthForm','ParamMouthOpenY','ParamMouthSmile',
+            'ParamBodyAngleX','ParamBodyAngleY','ParamBodyAngleZ',
+            'ParamControllerON'
+          ];
+          return FALLBACK.map(id => ({
+            id, min:-1, max:1, default:0, value:c.getParameterValueById?.(id) ?? 0
+          }));
+        }
+
+        // ---------- snapshots & sticky overrides ----------
+        const desiredParam = new Map(); // sticky: id -> value
+        let neutralLock = true;         // when true, we lock to NEUTRAL if requested
+
+        function clearOverrides() { desiredParam.clear(); }
+        app.ticker.add(() => {
+          if (!desiredParam.size) return;
+          desiredParam.forEach((v, id) => { try { core.setParameterValueById(id, v); } catch {} });
+        });
+
+        // capture FULL neutral snapshot (all params) after placement
+        const paramsAtLoad = await enumerateParamsRobust(model);
+        const NEUTRAL = new Map(paramsAtLoad.map(p => [p.id, core.getParameterValueById(p.id)]));
+        const DEFAULTS = new Map(paramsAtLoad.map(p => [p.id, p.default ?? 0]));
+
+        // ---------- Expressions ----------
+        async function loadExpressions(model, base = "/models/MO.v2.6.2") {
+          const list = [
+            "？？.exp3.json","D.exp3.json","huahua.exp3.json","lunpan.exp3.json","S.exp3.json","wuyu.exp3.json",
+            "A.exp3.json","dianji.exp3.json","jushou.exp3.json","pc.exp3.json","shengqi.exp3.json","xiangkuang.exp3.json",
+            "aixin.exp3.json","E.exp3.json","liuhan.exp3.json","pcshubiao.exp3.json","shoubin.exp3.json","xingxing.exp3.json",
+            "changge.exp3.json","F.exp3.json","lunpan emoji.exp3.json","Q.exp3.json","space.exp3.json","youjian.exp3.json",
+            "CTRL.exp3.json","guihuo.exp3.json","lunpan shoushi.exp3.json","R.exp3.json","W.exp3.json","Z.exp3.json"
+          ];
+          const em =
+            model?.internalModel?.motionManager?.expressionManager ??
+            model?.internalModel?.motionManager?._expressionManager ?? null;
+
+          const store = new Map();
+          const names = [];
+          for (const file of list) {
+            const name = file.replace(/\.exp3\.json$/i, "");
+            const url = `${base}/expressions/${encodeURIComponent(file)}`;
+            try {
+              const res = await fetch(url, { cache: "no-cache" });
+              if (!res.ok) continue;
+              const json = await res.json();
+              if (em && typeof em.addExpression === "function") {
+                try { em.addExpression(name, json); } catch {}
+              }
+              store.set(name, json);
+              names.push(name);
+            } catch {}
+          }
+          model.__expressions = store;
+          return names;
+        }
+
+        // tween helpers that ALSO write sticky overrides so overrides never fight expressions
+        function tweenPairsSticky(pairs, { duration = 420, easing = (t)=>t*(2-t), onDone } = {}) {
+          const t0 = performance.now();
+          function tick(now) {
+            const t = Math.min(1, (now - t0)/duration);
+            const k = easing(t);
+            for (const p of pairs) {
+              const v = p.start + (p.end - p.start) * k;
+              core.setParameterValueById(p.id, v);
+              desiredParam.set(p.id, v); // keep sticky aligned with tween
+            }
+            if (t < 1) requestAnimationFrame(tick);
+            else if (typeof onDone === 'function') onDone();
+          }
+          requestAnimationFrame(tick);
+        }
+
+        function buildPairsFromExpression(expJson, intensity = 1.6) {
+          const params = (expJson.Parameters || expJson.parameters || []);
+          const pairs = [];
+          for (const p of params) {
+            const id = p.Id || p.id;
+            const blend = (p.Blend || p.blend || "Add").toLowerCase();
+            const delta = Number(p.Value ?? p.value ?? 0) * intensity;
+            const start = core.getParameterValueById(id);
+            let end;
+            if (blend === "add")      end = start + delta;
+            else if (blend === "multiply") end = start * delta;
+            else end = delta;
+            pairs.push({ id, start, end });
+          }
+          return pairs;
+        }
+
+        function buildPairsToTargets(ids, targetMap) {
+          const pairs = [];
+          for (const id of ids) {
+            const start = core.getParameterValueById(id);
+            const end = targetMap.has(id) ? targetMap.get(id) : start;
+            pairs.push({ id, start, end });
+          }
+          return pairs;
+        }
+
+        // track which params each active expression controls
+        const activeExpressions = new Map(); // name -> Set(paramIds)
+
+        function mountExpressionPanel(names) {
+          const old = document.getElementById('expr-panel'); if (old) old.remove();
+          const el = document.createElement('div');
+          el.className = 'panel';
+          el.id = 'expr-panel';
+          el.innerHTML = `
+            <h3>Expressions (toggle)</h3>
+            <div style="margin:6px 0;">
+              <label style="opacity:.8">Intensity</label>
+              <input id="expr-int" class="field" type="range" min="0.5" max="3" step="0.1" value="1.6" style="width:160px;vertical-align:middle">
+              <span id="expr-int-val" style="margin-left:6px;opacity:.8">1.6×</span>
+            </div>
+            <div id="expr-buttons" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          `;
+          document.body.appendChild(el);
+          el.style.top = '10px'; el.style.left = '10px'; el.style.right = 'auto';
+          makeDraggable(el, { x: 10, y: 10 });
+
+          const wrap = el.querySelector('#expr-buttons');
+          const intensityEl = el.querySelector('#expr-int');
+          const intensityVal = el.querySelector('#expr-int-val');
+          intensityEl.oninput = () => (intensityVal.textContent = `${parseFloat(intensityEl.value).toFixed(1)}×`);
+
+          function setBtnState(btn, on) { btn.classList.toggle('active', !!on); }
+
+          names.forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = name;
+            setBtnState(btn, false);
+            btn.onclick = () => {
+              const exp = model.__expressions?.get(name);
+              if (!exp) return;
+              const mult = parseFloat(intensityEl.value || '1.6');
+
+              if (activeExpressions.has(name)) {
+                // TURN OFF: animate back to neutral (if lock) or release sticky
+                const ids = Array.from(activeExpressions.get(name));
+                const target = neutralLock ? NEUTRAL : new Map(); // empty map => keep current and clear sticky
+                const pairs = neutralLock
+                  ? buildPairsToTargets(ids, NEUTRAL)
+                  : buildPairsToTargets(ids, new Map(ids.map(id => [id, core.getParameterValueById(id)])));
+                tweenPairsSticky(pairs, {
+                  duration: 380,
+                  onDone: () => {
+                    if (neutralLock) {
+                      // keep sticky at neutral for those ids
+                      ids.forEach(id => desiredParam.set(id, NEUTRAL.get(id)));
+                    } else {
+                      // clear sticky for those ids so motions can proceed
+                      ids.forEach(id => desiredParam.delete(id));
+                    }
+                  }
+                });
+                activeExpressions.delete(name);
+                setBtnState(btn, false);
+              } else {
+                // TURN ON: animate to expression and keep sticky in sync
+                const pairs = buildPairsFromExpression(exp, mult);
+                const ids = pairs.map(p => p.id);
+                activeExpressions.set(name, new Set(ids));
+                tweenPairsSticky(pairs, { duration: 420 });
+                setBtnState(btn, true);
+              }
+            };
+            wrap.appendChild(btn);
+          });
+        }
+
+        // ---------- Params panel (Set Neutral/Defaults + Neutral Lock switch) ----------
+        function mountParamsPanel(params) {
+          const old = document.getElementById('params-panel'); if (old) old.remove();
+          const el = document.createElement('div');
+          el.className = 'panel';
+          el.id = 'params-panel';
+          el.style.width = '460px';
+          el.innerHTML = `
+            <h3 style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+              <span>Parameters</span>
+              <span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <label class="switch" title="When ON, expression OFF snaps back & sticks to Neutral">
+                  <input id="pp-lock" type="checkbox" checked>
+                  <span>Neutral Lock</span>
+                </label>
+                <button id="pp-neutral" class="btn" title="Set all to neutral snapshot and STICKY until cleared">Set Neutral</button>
+                <button id="pp-default" class="btn" title="Set all to model defaults (one-shot)">Set Defaults</button>
+                <button id="pp-clear" class="btn" title="Release all sticky overrides">Clear Overrides</button>
+              </span>
+            </h3>
+            <div style="display:flex;gap:8px;margin:8px 0;">
+              <input id="pp-filter" class="field" placeholder="filter (e.g. Mouth, Eye, Controller)" style="flex:1;">
+              <button id="pp-reload" class="btn">Reload Params</button>
+            </div>
+            <div id="pp-list" style="max-height:44vh; overflow:auto;"></div>
+          `;
+          document.body.appendChild(el);
+          el.style.top = '10px'; el.style.right = '10px'; el.style.left = 'auto';
+          makeDraggable(el, { x: window.innerWidth - 500, y: 10 });
+
+          const $filter = el.querySelector('#pp-filter');
+          const $list   = el.querySelector('#pp-list');
+          const $clear  = el.querySelector('#pp-clear');
+          const $reload = el.querySelector('#pp-reload');
+          const $neutral= el.querySelector('#pp-neutral');
+          const $default= el.querySelector('#pp-default');
+          const $lock   = el.querySelector('#pp-lock');
+
+          $lock.onchange = () => { neutralLock = $lock.checked; };
+
+          function setAllFromMap(map, {sticky=false} = {}) {
+            map.forEach((v, id) => {
+              try { core.setParameterValueById(id, v); } catch {}
+              if (sticky) desiredParam.set(id, v);
+            });
+          }
+
+          $neutral.onclick = () => {
+            // sticky neutral: will hold even if motions/expressions run
+            setAllFromMap(NEUTRAL, { sticky: true });
+          };
+
+          $default.onclick = () => {
+            // write defaults once; do NOT make sticky so you can animate
+            clearOverrides();
+            setAllFromMap(DEFAULTS, { sticky: false });
+          };
+
+          $clear.onclick = () => { clearOverrides(); };
+
+          $reload.onclick = async () => {
+            const fresh = await enumerateParamsRobust(model);
+            buildList(fresh);
+          };
+
+          function makeSliderRow(p) {
+            const row = document.createElement('div');
+            row.className = 'row';
+
+            const label = document.createElement('div');
+            label.style.cssText = 'width:220px; font-family:ui-monospace,Menlo,monospace; overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            label.textContent = p.id;
+
+            const val = document.createElement('input');
+            val.type = 'range';
+            val.min  = String(p.min);
+            val.max  = String(p.max);
+            const span = p.max - p.min;
+            val.step = span > 3 ? '0.01' : (span > 1 ? '0.005' : '0.001');
+            const cur = core.getParameterValueById(p.id) ?? p.value ?? 0;
+            val.value = String(cur);
+            val.className = 'field';
+            val.style.flex = '1';
+
+            const read = document.createElement('div');
+            read.style.cssText = 'width:56px; text-align:right; font-variant-numeric: tabular-nums;';
+            read.textContent = Number(cur).toFixed(2);
+
+            val.oninput = () => {
+              const v = parseFloat(val.value);
+              desiredParam.set(p.id, v);            // sticky per-param
+              core.setParameterValueById(p.id, v);  // immediate feedback
+              read.textContent = v.toFixed(2);
+            };
+
+            label.title = 'Double-click to clear sticky override for this param';
+            label.ondblclick = () => {
+              desiredParam.delete(p.id);
+              const now = core.getParameterValueById(p.id) ?? p.value ?? 0;
+              val.value = String(now);
+              read.textContent = Number(now).toFixed(2);
+            };
+
+            row.appendChild(label);
+            row.appendChild(val);
+            row.appendChild(read);
+            return row;
+          }
+
+          function buildList(arr) {
+            const q = ($filter.value || '').toLowerCase();
+            $list.innerHTML = '';
+            arr.forEach(p => {
+              if (q && !p.id.toLowerCase().includes(q)) return;
+              $list.appendChild(makeSliderRow(p));
+            });
+            if (!$list.children.length) {
+              const empty = document.createElement('div');
+              empty.style.opacity = .8;
+              empty.style.padding = '8px 0';
+              empty.textContent = 'No parameters found (try Reload Params or clear the filter).';
+              $list.appendChild(empty);
+            }
+          }
+
+          buildList(params);
+          $filter.oninput = () => buildList(params);
+        }
+
+        // ---------- boot panels ----------
+        const exprNames = await loadExpressions(model, "/models/MO.v2.6.2");
+        mountExpressionPanel(exprNames);
+
+        const params = await enumerateParamsRobust(model);
+        mountParamsPanel(params);
+
+        console.log('Panels mounted. Expressions:', exprNames.length, 'Params:', params.length);
+      })();
+    </script>
+  </body>
+</html>
+
