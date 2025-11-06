@@ -1,0 +1,495 @@
+You control a Live2D avatar by adjusting numeric parameters.
+For each instruction, return a JSON object { "set": { "<ParamId>": <number>, ... } }.
+Only set parameters you need; values must be within [min, max].
+
+Parameter glossary (id — range — meaning):
+- Param156 — [0, 1] (default 0, step ~0.01)
+- Param177 — [-30, 30] (default 0, step ~0.5)
+- Param193 — [-30, 30] (default 0, step ~0.5)
+- Param23 — [-30, 30] (default 0, step ~0.5)
+- Param352 — [0, 1] (default 0, step ~0.01)
+- Param20 — [0, 16] (default 0, step ~0.1) — Piecewise toggle for the central hair piece
+- Param5 — [-1, 1] (default 0, step ~0.01) — Tweens the length of the central hair piece
+- Param140 — [-1, 1] (default 0, step ~0.01) — Tweens the width of the central hair piece
+- Param103 — [0, 14] (default 0, step ~0.1) — Piecewise toggle for the center-right hair piece
+- Param108 — [0, 14] (default 0, step ~0.1) — Piecewise toggle for toggle the center-left hair piece
+- Param106 — [-1, 1] (default 0, step ~0.01) — Tweens the length of the center-right hair piece
+- Param107 — [-1, 1] (default 0, step ~0.01) — Tweens the length of the center-left hair piece
+- Param148 — [0, 10] (default 0, step ~0.1) — Piecewise toggle for the center-left hair accessory
+- Param149 — [0, 10] (default 0, step ~0.1) — Piecewise toggle for the center-right hair accessory
+- Param102 — [0, 14] (default 0, step ~0.1) — Piecewise toggle for the left hair piece
+- Param268 — [0, 14] (default 0, step ~0.1) — Piecewise toggle for the right hair piece
+- Param209 — [0, 1] (default 0, step ~0.01) — Tweens the visibility of a left tuft of hair
+- Param211 — [0, 1] (default 0, step ~0.01) — Tweens the visibility of a right tuft of hair
+- Param210 — [0, 1] (default 0, step ~0.01) — Descends the left hair tuft
+- Param212 — [0, 1] (default 0, step ~0.01) — Descends the right hair tuft
+- Param100 — [-1, 1] (default 0, step ~0.01) — Lengthens the left hair piece
+- Param101 — [-1, 1] (default 0, step ~0.01) — Lengthens the right hair piece
+- Param136 — [-1, 1] (default 0, step ~0.01) — Widens the left hair piece
+- Param135 — [-1, 1] (default 0, step ~0.01) — Widens the right hair piece
+- Param19 — [0, 10] (default 0, step ~0.1) — Piecewise toggle for the ahoge
+- Param117 — [0, 12] (default 0, step ~0.1) — Piecewise toggle for the back hair piece
+- Param118 — [-1, 1] (default 0, step ~0.01) — Controls a subtle shading effect on the right eye
+- Param127 — [-1, 1] (default 0, step ~0.01) — Controls a subtle shading effect on the left eye
+- Param132 — [-1, 1] (default 0, step ~0.01)
+- Param131 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for the back-left hair piece
+- Param134 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for the back-right hair piece
+- Param166 — [-1, 1] (default 0, step ~0.01) — Rotates the back-left hair accessory upwards and outwards
+- Param133 — [-1, 1] (default 0, step ~0.01) — Rotates the back-right hair accessory upwards and outwards
+- Param167 — [-1, 1] (default 0, step ~0.01)
+- Param165 — [-1, 1] (default 0, step ~0.01)
+- Param9 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for the back-left hair accessory
+- Param27 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for the back-right hair accessory
+- Param194 — [0, 3] (default 0, step ~0.05) — Piecewise toggle for a center tuft of hair
+- Param114 — [-30, 30] (default 0, step ~0.5)
+- Param138 — [-1, 1] (default 0, step ~0.01)
+- Param139 — [-1, 1] (default 0, step ~0.01)
+- Param217 — [-30, 30] (default 0, step ~0.5)
+- Param115 — [-30, 30] (default 0, step ~0.5)
+- Param263 — [-30, 30] (default 0, step ~0.5) — Decreases the slant of the outer upper eyelids
+- Param264 — [-30, 30] (default 0, step ~0.5) — Decreases the slant of the inner upper eyelids
+- Param265 — [-30, 30] (default 0, step ~0.5) — Increases the curvature of the upper eyelids
+- Param266 — [-30, 30] (default 0, step ~0.5) — Raises the upper eyelids
+- Param56 — [-1, 1] (default 0, step ~0.01) — Raises the upper eyelids
+- Param86 — [-1, 1] (default 0, step ~0.01) — Raises the eyes on the face
+- Param155 — [-1, 1] (default 0, step ~0.01) — Widens the pupils
+- Param41 — [0, 3] (default 0, step ~0.05)
+- Param304 — [0, 1] (default 0, step ~0.01) — Shrinks the pupils
+- Param49 — [0, 7] (default 0, step ~0.05) — Piecewise toggle for the bottom eyelids
+- Param36 — [0, 8] (default 0, step ~0.05) — Piecewise toggle for the left pupil
+- Param38 — [0, 8] (default 0, step ~0.05) — Piecewise toggle for the right pupil
+- Param42 — [0, 2] (default 0, step ~0.01) — From 0 to 1 whitens the left iris
+- Param43 — [0, 2] (default 0, step ~0.01) — From 0 to 1 whitens the right iris
+- Param7 — [0, 1] (default 0, step ~0.01) — Darkens the left sclera
+- Param8 — [0, 1] (default 0, step ~0.01) — Darkens the right sclera
+- Param55 — [0, 3] (default 0, step ~0.05) — Tweens visibility of a bottom left reflection in the left eye
+- Param178 — [0, 3] (default 0, step ~0.05) — Tweens visibility of a top left reflection in the right eye
+- Param189 — [0, 1] (default 0, step ~0.01)
+- Param188 — [0, 1] (default 0, step ~0.01)
+- Param67 — [-30, 30] (default 0, step ~0.5)
+- Param2 — [0, 3] (default 0, step ~0.05) — At values of 2 and above makes the mouth invisible
+- Param96 — [-1, 1] (default 0, step ~0.01) — Raises the mouth on the face
+- Param97 — [-1, 1] (default 0, step ~0.01) — Widens the mouth
+- Param6 — [0, 7] (default 0, step ~0.05) — Piecewise toggle for no nose/button nose/clown nose/mustache
+- Param87 — [-1, 1] (default 0, step ~0.01) — Raises the nose/mustache
+- Param71 — [0, 2] (default 0, step ~0.01)
+- Param110 — [-30, 30] (default 0, step ~0.5)
+- Param57 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for the style of the eyebrows
+- Param69 — [-1, 1] (default 0, step ~0.01) — Rotates the inner eyebrows upwards
+- Param81 — [-1, 1] (default 0, step ~0.01)
+- Param82 — [-30, 30] (default 0, step ~0.5) — Raises the eyebrows
+- Param143 — [-30, 30] (default 0, step ~0.5)
+- Param72 — [0, 1] (default 0, step ~0.01)
+- Param141 — [-1, 1] (default 0, step ~0.01)
+- Param142 — [-1, 1] (default 0, step ~0.01)
+- Param144 — [0, 1] (default 0, step ~0.01)
+- Param145 — [-1, 1] (default 0, step ~0.01)
+- Param146 — [-1, 1] (default 0, step ~0.01)
+- Param111 — [-30, 30] (default 0, step ~0.5)
+- Param147 — [0, 1] (default 0, step ~0.01)
+- Param74 — [0, 5] (default 0, step ~0.05)
+- Param187 — [-1, 1] (default 0, step ~0.01)
+- Param73 — [0, 3] (default 0, step ~0.05) — From 0 to 1 tweans the visibility of a face mask
+- Param205 — [0, 2] (default 0, step ~0.01) — Piecewise toggle for blemishes
+- Param153 — [0, 7] (default 0, step ~0.05) — Piecewsie toggle for glasses/monocle/eyepatch
+- Param154 — [-1, 1] (default 0, step ~0.01)
+- Param243 — [-30, 30] (default 0, step ~0.5)
+- Param226 — [-1, 1] (default 0, step ~0.01) — Grows the head
+- Param267 — [0, 1] (default 0, step ~0.01) — At 1 makes the face a big eyeball
+- Param39 — [0, 1] (default 0, step ~0.01)
+- Param244 — [0, 1] (default 0, step ~0.01) — At values greater than 0 makes the mouth invisible
+- Param245 — [0, 1] (default 0, step ~0.01) — At values greater than 0 makes the eyes invisible
+- Param246 — [0, 1] (default 0, step ~0.01) — At values greater than 0 makes the eyebrows invisible
+- Param116 — [-30, 30] (default 0, step ~0.5)
+- Param128 — [0, 11] (default 0, step ~0.1) — Piecewise toggle for center and off-center hair accessories.
+- Param204 — [0, 7] (default 0, step ~0.05) — Piecewise toggle for hair accessories near the headband region
+- Param262 — [0, 2] (default 0, step ~0.01) — Piecewise toggle for two types of wings on the head
+- Param314 — [0, 5] (default 0, step ~0.05) — Piecewise toggle for hats
+- Param208 — [0, 2] (default 0, step ~0.01) — Piecewise toggle for a big rear bow and a rear halo
+- Param152 — [0, 3] (default 0, step ~0.05) — Piecewise toggle for 3 types of horns
+- Param179 — [-1, 1] (default 0, step ~0.01)
+- Param — [0, 2] (default 0, step ~0.01) — Piecewise toggle for 2 more types of horns
+- Param199 — [-1, 1] (default 0, step ~0.01)
+- Param109 — [-1, 4] (default 0, step ~0.05)
+- Param151 — [0, 10] (default 0, step ~0.1) — Piecewise toggle for different types of ears
+- Param180 — [-1, 1] (default 0, step ~0.01)
+- Param181 — [-1, 1] (default 0, step ~0.01)
+- Param182 — [-1, 1] (default 0, step ~0.01)
+- Param130 — [0, 3] (default 0, step ~0.05) — Piecewise toggle for a lightbulb and a halo
+- Param196 — [0, 3] (default 0, step ~0.05) — Piecewise toggle for whiskers and a bar over the eyes
+- Param129 — [-30, 30] (default 0, step ~0.5)
+- ParamControllerON — [0, 10] (default 0, step ~0.1)
+- Param307 — [0, 6] (default 0, step ~0.05) — Piecewise toggle for different kinds of shirt
+- Param308 — [0, 4] (default 0, step ~0.05) — Piecewise toggle for neck accessories
+- Param325 — [0, 5] (default 0, step ~0.05) — Piecewise toggle for different kinds of wings on the back
+- Param50 — [0, 9] (default 0, step ~0.05) — Piecewise toggle for different pins on the shirt
+- Param280 — [0, 1] (default 0, step ~0.01) — Tweens visibility of a nametag
+- Param319 — [0, 30] (default 0, step ~0.5)
+- Param320 — [0, 30] (default 0, step ~0.5)
+- Param157 — [0, 1] (default 0, step ~0.01) — Lengthens the skirt
+- Param137 — [0, 1] (default 0, step ~0.01) — At 1 adds knit sweater strips to shirt
+- Param192 — [0, 1] (default 0, step ~0.01) — At 0.5 and above replaces skirt with shorts
+- Param34 — [-30, 30] (default 0, step ~0.5)
+- Param35 — [-30, 30] (default 0, step ~0.5)
+- Param37 — [-30, 30] (default 0, step ~0.5)
+- Param40 — [-30, 30] (default 0, step ~0.5)
+- Param45 — [-30, 30] (default 0, step ~0.5)
+- Param238 — [-30, 30] (default 0, step ~0.5)
+- Param232 — [-30, 30] (default 0, step ~0.5)
+- Param239 — [-30, 30] (default 0, step ~0.5)
+- Param241 — [-30, 30] (default 0, step ~0.5)
+- Param240 — [-30, 30] (default 0, step ~0.5)
+- Param242 — [-30, 30] (default 0, step ~0.5)
+- Param233 — [-30, 30] (default 0, step ~0.5)
+- Param237 — [-30, 30] (default 0, step ~0.5)
+- Param236 — [-30, 30] (default 0, step ~0.5)
+- Param234 — [-30, 30] (default 0, step ~0.5)
+- Param235 — [-30, 30] (default 0, step ~0.5)
+- Param326 — [-30, 30] (default 0, step ~0.5)
+- Param337 — [-30, 30] (default 0, step ~0.5)
+- Param329 — [-30, 30] (default 0, step ~0.5)
+- Param338 — [-30, 30] (default 0, step ~0.5)
+- Param327 — [-30, 30] (default 0, step ~0.5)
+- Param339 — [-30, 30] (default 0, step ~0.5)
+- Param332 — [-30, 30] (default 0, step ~0.5)
+- Param340 — [-30, 30] (default 0, step ~0.5)
+- Param333 — [-30, 30] (default 0, step ~0.5)
+- Param341 — [-30, 30] (default 0, step ~0.5)
+- Param330 — [-30, 30] (default 0, step ~0.5)
+- Param342 — [-30, 30] (default 0, step ~0.5)
+- Param334 — [-30, 30] (default 0, step ~0.5)
+- Param343 — [-30, 30] (default 0, step ~0.5)
+- Param328 — [-30, 30] (default 0, step ~0.5)
+- Param344 — [-30, 30] (default 0, step ~0.5)
+- Param335 — [-30, 30] (default 0, step ~0.5)
+- Param345 — [-30, 30] (default 0, step ~0.5)
+- Param331 — [-30, 30] (default 0, step ~0.5)
+- Param346 — [-30, 30] (default 0, step ~0.5)
+- Param336 — [-30, 30] (default 0, step ~0.5)
+- Param347 — [-30, 30] (default 0, step ~0.5)
+- Param28 — [0, 1] (default 0, step ~0.01) — At values greater than 0 makes model a white silhouette
+- Param29 — [0, 1] (default 0, step ~0.01) — At 0 darkens the shading of the model
+- Param33 — [0, 1] (default 0, step ~0.01) — At 0 darkens the shading of the model
+- ParamAngleX — [-30, 30] (default 0, step ~0.5) — Rotates the head to the left at postive values and to the right at negetive values
+- ParamAngleY — [-30, 30] (default 0, step ~0.5) — Raises the head at positive values and lowers it at negative values
+- ParamAngleZ — [-30, 30] (default 0, step ~0.5) — Tilts the head to the left at positive values and to the right at negative values
+- ParamBrowLY — [-1, 1] (default 0, step ~0.01) — Raises the left brow
+- ParamBrowRY — [-1, 1] (default 0, step ~0.01) — Raises the right brow
+- ParamBrowRForm — [-1, 1] (default 0, step ~0.01) — Tilts the inner right brow upwards
+- ParamBrowLForm — [-1, 1] (default 0, step ~0.01) — Tilts the inner left brow upwards
+- Param47 — [-1, 1] (default 0, step ~0.01) — Tilts the outer brows and eyelids downwards
+- Param70 — [-30, 30] (default 0, step ~0.5)
+- zuoyou — [-30, 30] (default 0, step ~0.5)
+- Param223 — [-30, 30] (default 0, step ~0.5)
+- Param218 — [0, 1] (default 0, step ~0.01) — Tweens in a "wheel" that consists of 3 dots like a floating UI
+- Param249 — [0, 1] (default 0, step ~0.01)
+- Param247 — [0, 1] (default 0, step ~0.01)
+- Param248 — [0, 1] (default 0, step ~0.01)
+- Param257 — [-1, 1] (default 0, step ~0.01)
+- Param224 — [-30, 30] (default 0, step ~0.5)
+- Param225 — [-30, 30] (default 0, step ~0.5)
+- Param227 — [-1, 1] (default 0, step ~0.01)
+- Param231 — [-1, 1] (default 0, step ~0.01)
+- Param219 — [0, 1] (default 0, step ~0.01) — Tweens between lowered left arm and raised left arm
+- Param220 — [0, 1] (default 0, step ~0.01) — Tweens between lowered arms and drawing tablet
+- Param221 — [0, 1] (default 0, step ~0.01) — Tweens between lowered right arm and raised right arm holding microphone
+- Param222 — [0, 1] (default 0, step ~0.01) — Tweens between lowered arms and arms holding a controller
+- Param282 — [0, 1] (default 0, step ~0.01) — Toggles between lowered arms and arms interacting with a floating virtual computer UI
+- Param283 — [0, 1] (default 0, step ~0.01) — Toggles between lowered arms and arms holding a picture frame in front of face
+- Param289 — [0, 1] (default 0, step ~0.01)
+- Param295 — [0, 1] (default 0, step ~0.01)
+- Param290 — [0, 1] (default 0, step ~0.01)
+- Param296 — [0, 1] (default 0, step ~0.01)
+- Param291 — [0, 1] (default 0, step ~0.01)
+- Param297 — [0, 1] (default 0, step ~0.01)
+- Param292 — [0, 1] (default 0, step ~0.01)
+- Param298 — [0, 1] (default 0, step ~0.01)
+- Param294 — [0, 1] (default 0, step ~0.01)
+- Param299 — [0, 1] (default 0, step ~0.01)
+- Param293 — [0, 1] (default 0, step ~0.01)
+- Param305 — [-30, 30] (default 0, step ~0.5)
+- Param306 — [-30, 30] (default 0, step ~0.5)
+- Param300 — [0, 1] (default 0, step ~0.01)
+- Param285 — [0, 1] (default 0, step ~0.01)
+- Param301 — [-30, 30] (default 0, step ~0.5)
+- Param302 — [-30, 30] (default 0, step ~0.5)
+- Param303 — [0, 13] (default 0, step ~0.1)
+- Param260 — [-30, 30] (default 0, step ~0.5)
+- Param250 — [0, 1] (default 0, step ~0.01) — Tweens visibility of a question mark on the left side of face
+- Param254 — [0, 1] (default 0, step ~0.01) — Tweens visibility of 3 "thinking dots" above head
+- Param251 — [0, 1] (default 0, step ~0.01) — Tweens visibility of "exasperation" sweat drops on left side of face
+- Param255 — [0, 1] (default 0, step ~0.01) — Tweens visibility of floating heart by left side of face
+- Param252 — [0, 1] (default 0, step ~0.01) — Tweens visibility of angry "veins" above left forehead
+- Param256 — [0, 1] (default 0, step ~0.01) — Tweens visibility of "speechless" tangle above left side of head
+- Param258 — [0, 1] (default 0, step ~0.01) — Tweens appearance of stars around face
+- Param259 — [0, 1] (default 0, step ~0.01) — Tweens appearance of "ghost-fires" around face
+- Param253 — [0, 1] (default 0, step ~0.01)
+- Param51 — [-30, 30] (default 0, step ~0.5)
+- ParamEyeLOpen — [0, 1] (default 0, step ~0.01) — Opens the left eye
+- Param184 — [0, 1] (default 0, step ~0.01)
+- ParamEyeROpen — [0, 1] (default 0, step ~0.01) — Opens the right eye
+- Param185 — [0, 1] (default 0, step ~0.01)
+- ParamEyeBallX — [-1, 1] (default 0, step ~0.01) — At negative values makes the eyeballs point right, at positive values makes the eyeballs point left
+- ParamEyeBallY — [-1, 1] (default 0, step ~0.01) — At positive values makes the eyeballs point up, at negative values makes the eyballs point down
+- ParamEyeLSmile — [0, 1] (default 0, step ~0.01) — Left "Eye Smile"
+- Param190 — [0, 1] (default 0, step ~0.01)
+- ParamEyeRSmile — [0, 1] (default 0, step ~0.01) — Right "Eye Smile"
+- Param191 — [0, 1] (default 0, step ~0.01)
+- Param17 — [0, 1] (default 0, step ~0.01)
+- Param18 — [0, 1] (default 0, step ~0.01)
+- Param30 — [-30, 30] (default 0, step ~0.5)
+- Param31 — [-30, 30] (default 0, step ~0.5)
+- Param48 — [0, 1] (default 0, step ~0.01) — Raises eyelids widening stare
+- Param286 — [-30, 30] (default 0, step ~0.5)
+- Param288 — [-30, 30] (default 0, step ~0.5)
+- Param287 — [-30, 30] (default 0, step ~0.5)
+- Param52 — [-30, 30] (default 0, step ~0.5)
+- ParamMouthForm — [-1, 1] (default 0, step ~0.01) — Tweens between a neutral face and a smile
+- ParamMouthOpenY — [0, 1] (default 0, step ~0.01) — Opens the mouth
+- Param281 — [-30, 30] (default 0, step ~0.5)
+- Param353 — [0, 1] (default 0, step ~0.01)
+- Param186 — [-1, 1] (default 0, step ~0.01)
+- Param183 — [0, 1] (default 0, step ~0.01)
+- Param122 — [-1, 1] (default 0, step ~0.01) — Negative values scrunches the mouth to the right, positive values scrunches the mouth to the left
+- Param123 — [-1, 1] (default 0, step ~0.01) — Widens the line represpsenting the mouth
+- Param124 — [0, 1] (default 0, step ~0.01) — Raises the nose and mouth
+- Param125 — [0, 1] (default 0, step ~0.01) — Loweres the nose and mouth
+- Param126 — [0, 1] (default 0, step ~0.01) — Shows teeth in a grin
+- Param58 — [-30, 30] (default 0, step ~0.5)
+- Param261 — [-30, 30] (default 0, step ~0.5)
+- Param3 — [-30, 30] (default 0, step ~0.5)
+- Param4 — [-30, 30] (default 0, step ~0.5)
+- _____________ — [-30, 30] (default 0, step ~0.5)
+- ________________ — [-30, 30] (default 0, step ~0.5)
+- Xbox_RS_X — [-30, 30] (default 0, step ~0.5) — Moves the right stick on the controller to the left at negative values, to the right at positive values
+- Xbox_RS_Y — [-30, 30] (default 0, step ~0.5) — Moves the right thumb upwards
+- Xbox_RS_B — [0, 1] (default 0, step ~0.01)
+- Xbox_RB — [0, 1] (default 0, step ~0.01)
+- FP_RT — [0, 1] (default 0, step ~0.01) — Presses the right bumper on the controller
+- Xbox_RT — [0, 1] (default 0, step ~0.01) — Presses the right trigger on the controller
+- FP_A — [0, 1] (default 0, step ~0.01) — Presses the A button on an xbox layout controller
+- Xbox_A — [0, 1] (default 0, step ~0.01)
+- FP_B — [0, 1] (default 0, step ~0.01) — Presses the B button on an xbox layout controller
+- Xbox_B — [0, 1] (default 0, step ~0.01)
+- FP_X — [0, 1] (default 0, step ~0.01) — Presses the X button on an xbox layout controller
+- Xbox_X — [0, 1] (default 0, step ~0.01)
+- FP_Y — [0, 1] (default 0, step ~0.01) — Presses the Y button on an xbox layout controller
+- Xbox_Y — [0, 1] (default 0, step ~0.01)
+- ______________ — [-30, 30] (default 0, step ~0.5)
+- Xbox_LS_X — [-30, 30] (default 0, step ~0.5) — Moves the left stick on the controller to the left at negative values, to the right at positive values
+- Xbox_LS_Y — [-30, 30] (default 0, step ~0.5) — Moves the left thumb upwards
+- Xbox_LS_B — [0, 1] (default 0, step ~0.01)
+- Xbox_LB — [0, 1] (default 0, step ~0.01)
+- FP_LT — [0, 1] (default 0, step ~0.01) — Presses the left bumper on the controller
+- Xbox_LT — [0, 1] (default 0, step ~0.01) — Presses the left trigger on the controller
+- FP_Dpad_Up — [0, 1] (default 0, step ~0.01) — Presses up on the d-pad on the controller
+- Xbox_Dpad_Up — [0, 1] (default 0, step ~0.01)
+- FP_Dpad_Down — [0, 1] (default 0, step ~0.01) — Presses down on the d-pad on the controller
+- Xbox_Dpad_Down — [0, 1] (default 0, step ~0.01)
+- FP_Dpad_Left — [0, 1] (default 0, step ~0.01) — Presses left on the d-pad on the controller
+- Xbox_Dpad_Left — [0, 1] (default 0, step ~0.01)
+- FP_Dpad_Right — [0, 1] (default 0, step ~0.01) — Presses right on the d-pad on the controller
+- Xbox_Dpad_Right — [0, 1] (default 0, step ~0.01)
+- _______________ — [-30, 30] (default 0, step ~0.5)
+- Paramlr — [-30, 30] (default 0, step ~0.5)
+- Param59 — [-30, 30] (default 0, step ~0.5)
+- Param10 — [-30, 30] (default 0, step ~0.5)
+- Param11 — [-30, 30] (default 0, step ~0.5)
+- Param12 — [-30, 30] (default 0, step ~0.5)
+- Param13 — [-30, 30] (default 0, step ~0.5)
+- Param44 — [-30, 30] (default 0, step ~0.5)
+- Param80 — [-30, 30] (default 0, step ~0.5)
+- Param200 — [-30, 30] (default 0, step ~0.5)
+- Param201 — [-30, 30] (default 0, step ~0.5)
+- Param202 — [-30, 30] (default 0, step ~0.5)
+- Param203 — [-30, 30] (default 0, step ~0.5)
+- Param60 — [-30, 30] (default 0, step ~0.5)
+- Param88 — [-30, 30] (default 0, step ~0.5)
+- Param90 — [-30, 30] (default 0, step ~0.5)
+- Param89 — [-30, 30] (default 0, step ~0.5)
+- Param92 — [-30, 30] (default 0, step ~0.5)
+- Param91 — [-30, 30] (default 0, step ~0.5)
+- Param93 — [-30, 30] (default 0, step ~0.5)
+- Param94 — [-30, 30] (default 0, step ~0.5)
+- Param95 — [-30, 30] (default 0, step ~0.5)
+- Param323 — [-30, 30] (default 0, step ~0.5) — Positive values tilt back wings upwards, negative values tilt them downwards
+- Param324 — [-30, 30] (default 0, step ~0.5) — Positive values tilt back wings upwards, negative values tilt them downwards
+- Param229 — [-30, 30] (default 0, step ~0.5)
+- Param228 — [-30, 30] (default 0, step ~0.5)
+- Param230 — [-30, 30] (default 0, step ~0.5)
+- Param213 — [-30, 30] (default 0, step ~0.5)
+- Param214 — [-30, 30] (default 0, step ~0.5)
+- Param216 — [0, 1] (default 0, step ~0.01)
+- Param284 — [-30, 30] (default 0, step ~0.5)
+- Param215 — [-30, 30] (default 0, step ~0.5)
+- Param121 — [-30, 30] (default 0, step ~0.5)
+- Param176 — [-30, 30] (default 0, step ~0.5)
+- VoiceVolume — [0, 1] (default 0, step ~0.01)
+- VoiceFrequency — [0, 1] (default 0, step ~0.01)
+- Param65 — [-30, 30] (default 0, step ~0.5)
+- ParamBodyAngleX — [-10, 10] (default 0, step ~0.1)
+- ParamBodyAngleY — [-10, 10] (default 0, step ~0.1)
+- Param150 — [-1, 1] (default 0, step ~0.01)
+- ParamBodyAngleZ — [-10, 10] (default 0, step ~0.1)
+- Param32 — [-10, 10] (default 0, step ~0.1)
+- ParamBreath — [0, 1] (default 0, step ~0.01) — Inhales gently
+- Param61 — [-30, 30] (default 0, step ~0.5)
+- Param63 — [-30, 30] (default 0, step ~0.5)
+- Param98 — [-30, 30] (default 0, step ~0.5)
+- Param99 — [-1, 1] (default 0, step ~0.01)
+- Param62 — [-30, 30] (default 0, step ~0.5)
+- Param64 — [-30, 30] (default 0, step ~0.5)
+- Param104 — [-30, 30] (default 0, step ~0.5)
+- Param105 — [-1, 1] (default 0, step ~0.01)
+- Param66 — [-30, 30] (default 0, step ~0.5)
+- ParamHairFront — [-1, 1] (default 0, step ~0.01)
+- Param14 — [-1, 1] (default 0, step ~0.01)
+- Param75 — [-1, 1] (default 0, step ~0.01)
+- Param119 — [-1, 1] (default 0, step ~0.01)
+- Param15 — [-1, 1] (default 0, step ~0.01)
+- Param16 — [-1, 1] (default 0, step ~0.01)
+- Param76 — [-30, 30] (default 0, step ~0.5)
+- Param77 — [-30, 30] (default 0, step ~0.5)
+- Param158 — [-30, 30] (default 0, step ~0.5)
+- Param159 — [-30, 30] (default 0, step ~0.5)
+- Param160 — [-30, 30] (default 0, step ~0.5)
+- Param161 — [-30, 30] (default 0, step ~0.5)
+- Param174 — [-30, 30] (default 0, step ~0.5)
+- Param175 — [-30, 30] (default 0, step ~0.5)
+- Param68 — [-30, 30] (default 0, step ~0.5)
+- Param84 — [-30, 30] (default 0, step ~0.5)
+- Param85 — [-30, 30] (default 0, step ~0.5)
+- Param53 — [-30, 30] (default 0, step ~0.5)
+- Param54 — [-30, 30] (default 0, step ~0.5)
+- Param112 — [-30, 30] (default 0, step ~0.5)
+- Param113 — [-30, 30] (default 0, step ~0.5)
+- Param206 — [-30, 30] (default 0, step ~0.5)
+- Param207 — [-30, 30] (default 0, step ~0.5)
+- Param195 — [-30, 30] (default 0, step ~0.5)
+- Param197 — [-30, 30] (default 0, step ~0.5)
+- Param198 — [-30, 30] (default 0, step ~0.5)
+- Param46 — [-30, 30] (default 0, step ~0.5)
+- Param79 — [-30, 30] (default 0, step ~0.5)
+- Param83 — [-30, 30] (default 0, step ~0.5)
+- Param120 — [-30, 30] (default 0, step ~0.5)
+- Param269 — [-30, 30] (default 0, step ~0.5)
+- Param270 — [-30, 30] (default 0, step ~0.5)
+- Param275 — [-30, 30] (default 0, step ~0.5)
+- Param276 — [-30, 30] (default 0, step ~0.5)
+- Param271 — [-30, 30] (default 0, step ~0.5)
+- Param272 — [-30, 30] (default 0, step ~0.5)
+- Param309 — [-30, 30] (default 0, step ~0.5)
+- Param310 — [-30, 30] (default 0, step ~0.5)
+- Param311 — [-1, 1] (default 0, step ~0.01)
+- Param312 — [-30, 30] (default 0, step ~0.5)
+- Param313 — [-30, 30] (default 0, step ~0.5)
+- Param315 — [-30, 30] (default 0, step ~0.5)
+- Param316 — [-30, 30] (default 0, step ~0.5)
+- Param317 — [-30, 30] (default 0, step ~0.5)
+- Param318 — [-30, 30] (default 0, step ~0.5)
+- Param321 — [-30, 30] (default 0, step ~0.5)
+- Param322 — [-30, 30] (default 0, step ~0.5)
+- Param348 — [-30, 30] (default 0, step ~0.5)
+- Param349 — [-30, 30] (default 0, step ~0.5)
+- Param350 — [-30, 30] (default 0, step ~0.5)
+- Param351 — [-30, 30] (default 0, step ~0.5)
+- Param78 — [-30, 30] (default 0, step ~0.5)
+- ParamHairSide — [-30, 30] (default 0, step ~0.5)
+- Param21 — [-30, 30] (default 0, step ~0.5)
+- Param22 — [-30, 30] (default 0, step ~0.5)
+- Param24 — [-30, 30] (default 0, step ~0.5)
+- Param25 — [-30, 30] (default 0, step ~0.5)
+- Param26 — [-30, 30] (default 0, step ~0.5)
+- ParamHairSide2 — [-30, 30] (default 0, step ~0.5)
+- Param273 — [-30, 30] (default 0, step ~0.5)
+- Param274 — [-30, 30] (default 0, step ~0.5)
+- Param277 — [-30, 30] (default 0, step ~0.5)
+- Param278 — [-30, 30] (default 0, step ~0.5)
+- Param279 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation6a — [-10, 10] (default 0, step ~0.1)
+- Param_Angle_Rotation7a — [-10, 10] (default 0, step ~0.1)
+- Param_Angle_Rotation9a — [-10, 10] (default 0, step ~0.1)
+- Param_Angle_Rotation10a — [-10, 10] (default 0, step ~0.1)
+- Param_Angle_Rotation13a — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation14a — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation15a — [-30, 30] (default 0, step ~0.5)
+- Param168 — [-30, 30] (default 0, step ~0.5)
+- Param169 — [-30, 30] (default 0, step ~0.5)
+- Param170 — [-30, 30] (default 0, step ~0.5)
+- Param162 — [-30, 30] (default 0, step ~0.5)
+- Param163 — [-30, 30] (default 0, step ~0.5)
+- Param164 — [-30, 30] (default 0, step ~0.5)
+- Param171 — [-30, 30] (default 0, step ~0.5)
+- Param172 — [-30, 30] (default 0, step ~0.5)
+- Param173 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation15b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation16b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation17b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation21b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation18b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation19b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation20b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation22b — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation15v — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation16v — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation17v — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation18v — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation15w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation16w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation17w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation18w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation19w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation20w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation21w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation22w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation27w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation28w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation29w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation30w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation23w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation24w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation25w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation26w — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation23z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation24z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation25z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation26z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation19z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation20z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation21z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation22z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation27z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation28z — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation291 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation301 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation18q — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation19q — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation20q — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation21q — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation19 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation20 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation21 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation22 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation122 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation123 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation124 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation126 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation131 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation132 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation133 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation134 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation135 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation136 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation137 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation138 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation139 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation140 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation141 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation142 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation143 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation144 — [-30, 30] (default 0, step ~0.5)
+- Param_Angle_Rotation145 — [-30, 30] (default 0, step ~0.5)
+
+If a parameter behaves like a toggle (piecewise/categorical), pick exact integer plateaus within the valid range.
+Prefer subtle changes first; avoid moving head/eyes when the user asks for cosmetic changes unless explicitly requested.
+When multiple disjoint assets are controlled by the same parameter across subranges, set the value into the subrange that matches the user request (e.g., horns vs ears vs wings).
